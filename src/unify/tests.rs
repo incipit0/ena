@@ -484,3 +484,34 @@ fn clone_table() {
         }
     }
 }
+
+#[test]
+fn probe_value_immutable() {
+    all_modes! {
+        S for IntKey => {
+            let mut ut: UnificationTable<S> = UnificationTable::new();
+            let k1 = ut.new_key(None);
+            let k2 = ut.new_key(None);
+            let k3 = ut.new_key(None);
+            let k4 = ut.new_key(None);
+            assert!(ut.unify_var_var(k1, k2).is_ok());
+            assert!(ut.unify_var_var(k3, k4).is_ok());
+            assert!(ut.unify_var_var(k2, k4).is_ok());
+            assert!(ut.unify_var_value(k1, Some(22)).is_ok());
+
+            // Only a shared reference is needed.
+            let shared: &UnificationTable<S> = &ut;
+            for &k in &[k1, k2, k3, k4] {
+                assert_eq!(shared.probe_value_immutable(k), Some(22));
+            }
+
+            let k5 = ut.new_key(None);
+            assert_eq!(ut.probe_value_immutable(k5), None);
+
+            // Agrees with the path-compressing version.
+            for &k in &[k1, k2, k3, k4, k5] {
+                assert_eq!(ut.probe_value_immutable(k), ut.probe_value(k));
+            }
+        }
+    }
+}

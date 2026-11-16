@@ -466,6 +466,30 @@ where
         }
         None
     }
+
+    /// Returns the current value for the given key, like `probe_value`,
+    /// but takes `&self`. Because the table cannot be mutated, no path
+    /// compression is performed: the parent chain is walked to the root
+    /// on every call. Prefer `probe_value` when you have `&mut self`.
+    pub fn probe_value_immutable<K1>(&self, id: K1) -> V
+    where
+        K1: Into<K>,
+    {
+        let root = self.get_root_key_without_compression(id.into());
+        self.value(root).value.clone()
+    }
+
+    /// Finds the root key for `vid` by following parent links,
+    /// without path compression.
+    fn get_root_key_without_compression(&self, mut vid: K) -> K {
+        loop {
+            let parent = self.value(vid).parent;
+            if parent == vid {
+                return vid;
+            }
+            vid = parent;
+        }
+    }
 }
 
 impl<S, K, V> UnificationTable<S>
